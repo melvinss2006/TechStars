@@ -345,21 +345,21 @@ export function validateLayout(layout, crewSize = 4, missionProfileId = 'lunar_s
 
   // Determine overall status
   let rating = 'CRITICAL HAZARD';
-  let ratingColor = 'text-red-400';
-  let badgeBg = 'bg-red-500/20 border-red-500/50 text-red-300';
+  let ratingColor = 'text-red-600 dark:text-red-400';
+  let badgeBg = 'bg-red-500/15 border-red-500/50 text-red-700 dark:bg-red-500/20 dark:text-red-300';
 
   if (suitabilityScore >= 90) {
     rating = 'FLIGHT CERTIFIED (EXCELLENT)';
-    ratingColor = 'text-emerald-400';
-    badgeBg = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
+    ratingColor = 'text-emerald-600 dark:text-emerald-400';
+    badgeBg = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';
   } else if (suitabilityScore >= 75) {
     rating = 'ACCEPTABLE (MINOR REVISIONS)';
-    ratingColor = 'text-amber-400';
-    badgeBg = 'bg-amber-500/20 border-amber-500/50 text-amber-300';
+    ratingColor = 'text-amber-600 dark:text-amber-400';
+    badgeBg = 'bg-amber-500/15 border-amber-500/50 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300';
   } else if (suitabilityScore >= 50) {
     rating = 'SUB-OPTIMAL (REDESIGN RECOMMENDED)';
-    ratingColor = 'text-orange-400';
-    badgeBg = 'bg-orange-500/20 border-orange-500/50 text-orange-300';
+    ratingColor = 'text-orange-600 dark:text-orange-400';
+    badgeBg = 'bg-orange-500/15 border-orange-500/50 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300';
   }
 
   return {

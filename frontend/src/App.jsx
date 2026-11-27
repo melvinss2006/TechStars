@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { PRESET_LAYOUTS } from './constants/presets';
 import { MISSION_PROFILES } from './constants/habitatRules';
@@ -16,6 +16,35 @@ import OptimizerModal from './components/OptimizerModal';
 import AIExplanationModal from './components/AIExplanationModal';
 
 export default function App() {
+  // Theme state ('dark' | 'light')
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('habitat-theme') || 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('habitat-theme', theme);
+  }, [theme]);
+
+  // Panel minimize states
+  const [isPaletteMinimized, setIsPaletteMinimized] = useState(false);
+  const [isIssuesMinimized, setIsIssuesMinimized] = useState(false);
+  const [isScoreMinimized, setIsScoreMinimized] = useState(false);
+
+  const isCanvasFocused = isPaletteMinimized && isIssuesMinimized && isScoreMinimized;
+
+  const handleToggleFocusCanvas = () => {
+    const next = !isCanvasFocused;
+    setIsPaletteMinimized(next);
+    setIsIssuesMinimized(next);
+    setIsScoreMinimized(next);
+  };
+
   // Initialize with the flawed layout preset to clearly showcase problem & solution
   const [currentLayout, setCurrentLayout] = useState(PRESET_LAYOUTS[0]);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
@@ -67,7 +96,6 @@ export default function App() {
 
   // Handlers
   const handleAddRoom = (typeDef, w, h) => {
-    // Find an unoccupied spot
     const newRoom = {
       id: `room-${Date.now()}`,
       type: typeDef.id,
@@ -132,7 +160,6 @@ export default function App() {
     };
     setSavedVersions(prev => [newSnapshot, ...prev]);
 
-    // Visual feedback
     confetti({
       particleCount: 40,
       spread: 60,
@@ -185,7 +212,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-space-950 text-slate-100 font-sans">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 dark:bg-space-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         missionProfileId={missionProfileId}
@@ -201,9 +228,13 @@ export default function App() {
         onExportJSON={handleExportJSON}
         onImportJSON={handleImportJSON}
         onResetLayout={handleResetLayout}
+        theme={theme}
+        onToggleTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
+        isCanvasFocused={isCanvasFocused}
+        onToggleFocusCanvas={handleToggleFocusCanvas}
       />
 
-      {/* Score Telemetry HUD */}
+      {/* Score Telemetry HUD (Minimizable) */}
       <ScoreCard
         validation={validation}
         onRunSimulation={() => setIsSimulating(v => !v)}
@@ -211,14 +242,18 @@ export default function App() {
         onOpenOptimizer={() => setIsOptimizerOpen(true)}
         onOpenReport={() => setIsReportOpen(true)}
         bestSwap={bestSwap}
+        isMinimized={isScoreMinimized}
+        onToggleMinimize={() => setIsScoreMinimized(v => !v)}
       />
 
       {/* Main Workspace Body */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Left: Module Palette */}
+        {/* Left: Module Palette (Minimizable) */}
         <RoomPalette
           onAddRoom={handleAddRoom}
           crewSize={crewSize}
+          isMinimized={isPaletteMinimized}
+          onToggleMinimize={() => setIsPaletteMinimized(v => !v)}
         />
 
         {/* Center: 2D Interactive Canvas */}
@@ -232,12 +267,13 @@ export default function App() {
           isSimulating={isSimulating}
         />
 
-        {/* Right: Rules Validation & Penalties */}
+        {/* Right: Rules Validation & Penalties (Minimizable) */}
         <IssuesList
           issues={validation.issues}
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
-          onApplyFix={handleApplySwap}
+          isMinimized={isIssuesMinimized}
+          onToggleMinimize={() => setIsIssuesMinimized(v => !v)}
         />
 
         {/* Floating Room Inspector Drawer when room is clicked */}
@@ -250,6 +286,7 @@ export default function App() {
             onDuplicateRoom={handleDuplicateRoom}
             validation={validation}
             crewSize={crewSize}
+            isPaletteMinimized={isPaletteMinimized}
           />
         )}
       </div>

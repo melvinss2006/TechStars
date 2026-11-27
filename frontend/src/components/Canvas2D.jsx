@@ -200,45 +200,45 @@ export default function Canvas2D({
   };
 
   return (
-    <div className="relative flex-1 bg-space-950 flex flex-col h-full overflow-hidden select-none">
+    <div className="relative flex-1 bg-slate-100 dark:bg-space-950 flex flex-col h-full overflow-hidden select-none transition-colors duration-200">
       {/* Canvas Top Bar Controls */}
-      <div className="h-12 border-b border-space-800 bg-space-900/90 backdrop-blur px-4 flex items-center justify-between z-30">
+      <div className="h-10 border-b border-slate-200 dark:border-space-800 bg-white/90 dark:bg-space-900/90 backdrop-blur px-4 flex items-center justify-between z-30">
         <div className="flex items-center space-x-3 text-xs">
-          <span className="font-mono text-cyan-400 font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span className="font-mono text-cyan-600 dark:text-cyan-400 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-pulse"></span>
             2D HABITAT VIEWPORT
           </span>
-          <span className="text-slate-500">|</span>
-          <span className="text-slate-400">Scale: 1 unit = 1.0 m²</span>
-          <span className="text-slate-500">|</span>
-          <span className="text-slate-400 font-mono">Modules: {rooms.length}</span>
-          <span className="text-slate-500">|</span>
-          <span className="text-slate-400 font-mono">Area: {validation?.totalArea || 0} m²</span>
+          <span className="text-slate-300 dark:text-slate-500">|</span>
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">Scale: 1 unit = 1.0 m²</span>
+          <span className="text-slate-300 dark:text-slate-500 hidden sm:inline">|</span>
+          <span className="text-slate-600 dark:text-slate-400 font-mono">Modules: {rooms.length}</span>
+          <span className="text-slate-300 dark:text-slate-500">|</span>
+          <span className="text-slate-600 dark:text-slate-400 font-mono">Area: {validation?.totalArea || 0} m²</span>
         </div>
 
         {/* Zoom & View Controls */}
         <div className="flex items-center space-x-2">
-          <div className="bg-space-800/80 rounded-lg p-1 flex items-center space-x-1 border border-space-700/60">
+          <div className="bg-slate-100 dark:bg-space-800/80 rounded-lg p-0.5 flex items-center space-x-1 border border-slate-300 dark:border-space-700/60">
             <button
               onClick={() => setZoom(z => Math.max(0.6, z - 0.1))}
-              className="p-1 hover:bg-space-700 text-slate-300 rounded transition"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-space-700 text-slate-700 dark:text-slate-300 rounded transition"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono text-slate-300 px-1.5">
+            <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300 px-1.5">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={() => setZoom(z => Math.min(1.6, z + 0.1))}
-              className="p-1 hover:bg-space-700 text-slate-300 rounded transition"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-space-700 text-slate-700 dark:text-slate-300 rounded transition"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setZoom(1)}
-              className="p-1 hover:bg-space-700 text-slate-300 rounded transition"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-space-700 text-slate-700 dark:text-slate-300 rounded transition"
               title="Reset Zoom"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -262,7 +262,7 @@ export default function Canvas2D({
             margin: `${canvasOffset.y}px ${canvasOffset.x}px`,
             position: 'relative'
           }}
-          className="border-2 border-dashed border-space-700/60 rounded-xl shadow-2xl bg-space-900/40 relative"
+          className="border-2 border-dashed border-slate-300 dark:border-space-700/60 rounded-xl shadow-xl bg-white/60 dark:bg-space-900/40 relative"
         >
           {/* Evacuation SVG Overlay Lines */}
           {renderEvacuationRoutes()}
@@ -307,7 +307,7 @@ export default function Canvas2D({
                       className="w-2 h-2 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: rDef.color }}
                     />
-                    <span className="font-semibold text-[11px] leading-tight truncate text-slate-100">
+                    <span className="font-semibold text-[11px] leading-tight truncate text-slate-900 dark:text-slate-100">
                       {room.name}
                     </span>
                   </div>
@@ -336,14 +336,14 @@ export default function Canvas2D({
 
                 {/* Center Content: Dimensions & Type */}
                 <div className="my-auto pointer-events-none text-center">
-                  <div className="font-mono text-xs font-bold text-slate-200">
+                  <div className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                     {room.w}m × {room.h}m
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400 font-mono">
                     {area} m²
                   </div>
                   {isTrapped && (
-                    <div className="mt-1 inline-flex items-center gap-1 bg-red-950/80 border border-red-500/50 text-red-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                    <div className="mt-1 inline-flex items-center gap-1 bg-red-600 dark:bg-red-950/80 border border-red-500/50 text-white dark:text-red-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
                       <AlertTriangle className="w-2.5 h-2.5" />
                       NO EXIT ROUTE
                     </div>
@@ -351,8 +351,8 @@ export default function Canvas2D({
                 </div>
 
                 {/* Footer Controls & Evac Steps */}
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/10 pointer-events-auto">
-                  <span className="font-mono text-[9px] text-slate-400 uppercase tracking-wider truncate">
+                <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-900/10 dark:border-white/10 pointer-events-auto">
+                  <span className="font-mono text-[9px] text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">
                     {rDef.category}
                   </span>
 
@@ -361,14 +361,14 @@ export default function Canvas2D({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => handleDuplicateRoom(room, e)}
-                        className="p-1 hover:bg-white/20 rounded text-slate-200 transition"
+                        className="p-1 hover:bg-slate-900/10 dark:hover:bg-white/20 rounded text-slate-800 dark:text-slate-200 transition"
                         title="Duplicate Room"
                       >
                         <Copy className="w-2.5 h-2.5" />
                       </button>
                       <button
                         onClick={(e) => handleDeleteRoom(room.id, e)}
-                        className="p-1 hover:bg-red-500/30 text-red-300 rounded transition"
+                        className="p-1 hover:bg-red-500/20 text-red-600 dark:text-red-300 rounded transition"
                         title="Delete Room"
                       >
                         <Trash2 className="w-2.5 h-2.5" />
@@ -392,23 +392,23 @@ export default function Canvas2D({
       </div>
 
       {/* Legend Footer */}
-      <div className="border-t border-space-800 bg-space-900/80 px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400 z-30">
+      <div className="border-t border-slate-200 dark:border-space-800 bg-white/90 dark:bg-space-900/80 px-4 py-1.5 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-400 z-30">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[11px] text-slate-500 font-medium">LEGEND:</span>
+          <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 font-medium">LEGEND:</span>
           {Object.values(ROOM_TYPES).slice(0, 7).map(t => (
             <div key={t.id} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: t.color }}></span>
-              <span className="text-[11px] text-slate-300">{t.name.split(' ')[0]}</span>
+              <span className="text-[11px] text-slate-700 dark:text-slate-300">{t.name.split(' ')[0]}</span>
             </div>
           ))}
         </div>
 
         <div className="flex items-center gap-3 text-[11px] font-mono">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2.5 h-0.5 bg-emerald-400 inline-block border-b border-dashed"></span>
+          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <span className="w-2.5 h-0.5 bg-emerald-500 dark:bg-emerald-400 inline-block border-b border-dashed"></span>
             <span>BFS Escape Route</span>
           </div>
-          <div className="flex items-center gap-1 text-red-400">
+          <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
             <AlertTriangle className="w-3 h-3" />
             <span>Rule Penalty</span>
           </div>

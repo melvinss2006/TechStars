@@ -8,7 +8,7 @@ export const ROOM_TYPES = {
     name: 'Crew Quarters',
     category: 'Habitability',
     color: '#3b82f6', // blue
-    bgClass: 'bg-blue-500/20 border-blue-500 text-blue-200',
+    bgClass: 'bg-blue-500/15 border-blue-500 text-blue-950 dark:bg-blue-500/20 dark:text-blue-200',
     headerBg: 'bg-blue-600',
     minAreaPerCrew: 4.0, // m²
     baseMinArea: 6.0,
@@ -23,7 +23,7 @@ export const ROOM_TYPES = {
     name: 'Personal Hygiene / Waste',
     category: 'Sanitation',
     color: '#06b6d4', // cyan
-    bgClass: 'bg-cyan-500/20 border-cyan-500 text-cyan-200',
+    bgClass: 'bg-cyan-500/15 border-cyan-500 text-cyan-950 dark:bg-cyan-500/20 dark:text-cyan-200',
     headerBg: 'bg-cyan-600',
     minAreaPerCrew: 1.0,
     baseMinArea: 4.0,
@@ -38,7 +38,7 @@ export const ROOM_TYPES = {
     name: 'Galley & Wardroom',
     category: 'Nutrition & Social',
     color: '#f59e0b', // amber
-    bgClass: 'bg-amber-500/20 border-amber-500 text-amber-200',
+    bgClass: 'bg-amber-500/15 border-amber-500 text-amber-950 dark:bg-amber-500/20 dark:text-amber-200',
     headerBg: 'bg-amber-600',
     minAreaPerCrew: 2.0,
     baseMinArea: 10.0,
@@ -53,7 +53,7 @@ export const ROOM_TYPES = {
     name: 'Exercise & Countermeasures',
     category: 'Health & Fitness',
     color: '#ef4444', // red
-    bgClass: 'bg-red-500/20 border-red-500 text-red-200',
+    bgClass: 'bg-red-500/15 border-red-500 text-red-950 dark:bg-red-500/20 dark:text-red-200',
     headerBg: 'bg-red-600',
     minAreaPerCrew: 1.5,
     baseMinArea: 10.0,
@@ -68,7 +68,7 @@ export const ROOM_TYPES = {
     name: 'Medical & Telemedicine',
     category: 'Health & Safety',
     color: '#10b981', // emerald
-    bgClass: 'bg-emerald-500/20 border-emerald-500 text-emerald-200',
+    bgClass: 'bg-emerald-500/15 border-emerald-500 text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-200',
     headerBg: 'bg-emerald-600',
     minAreaPerCrew: 1.0,
     baseMinArea: 10.0,
@@ -83,7 +83,7 @@ export const ROOM_TYPES = {
     name: 'Workstation / Lab',
     category: 'Operations',
     color: '#8b5cf6', // purple
-    bgClass: 'bg-purple-500/20 border-purple-500 text-purple-200',
+    bgClass: 'bg-purple-500/15 border-purple-500 text-purple-950 dark:bg-purple-500/20 dark:text-purple-200',
     headerBg: 'bg-purple-600',
     minAreaPerCrew: 2.0,
     baseMinArea: 12.0,
@@ -98,7 +98,7 @@ export const ROOM_TYPES = {
     name: 'Logistics & ECLSS Storage',
     category: 'Life Support',
     color: '#64748b', // slate
-    bgClass: 'bg-slate-500/20 border-slate-500 text-slate-200',
+    bgClass: 'bg-slate-500/15 border-slate-500 text-slate-900 dark:bg-slate-500/20 dark:text-slate-200',
     headerBg: 'bg-slate-600',
     minAreaPerCrew: 2.0,
     baseMinArea: 8.0,
@@ -113,7 +113,7 @@ export const ROOM_TYPES = {
     name: 'Airlock / Surface Exit',
     category: 'Emergency & EVA',
     color: '#ec4899', // pink
-    bgClass: 'bg-pink-500/20 border-pink-500 text-pink-200',
+    bgClass: 'bg-pink-500/15 border-pink-500 text-pink-950 dark:bg-pink-500/20 dark:text-pink-200',
     headerBg: 'bg-pink-600',
     minAreaPerCrew: 0.5,
     baseMinArea: 6.0,
@@ -129,7 +129,7 @@ export const ROOM_TYPES = {
     name: 'Corridor / Circulation',
     category: 'Passage',
     color: '#475569',
-    bgClass: 'bg-slate-700/30 border-dashed border-slate-500 text-slate-300',
+    bgClass: 'bg-slate-300/40 border-dashed border-slate-500 text-slate-800 dark:bg-slate-700/30 dark:text-slate-300',
     headerBg: 'bg-slate-700',
     minAreaPerCrew: 0,
     baseMinArea: 4.0,
