@@ -8,13 +8,20 @@ import {
   ZoomIn, 
   ZoomOut, 
   RotateCcw,
-  Compass,
-  Grid3X3
+  Undo2,
+  Moon,
+  Activity,
+  Droplets,
+  Utensils,
+  Briefcase,
+  HeartPulse,
+  Boxes,
+  Plus
 } from 'lucide-react';
 
-const GRID_SIZE = 28; // 28 pixels per meter
-const CANVAS_COLS = 34;
-const CANVAS_ROWS = 24;
+const GRID_SIZE = 24; // 24 pixels per meter
+const CANVAS_COLS = 32;
+const CANVAS_ROWS = 14;
 
 export default function Canvas2D({
   layout,
@@ -23,7 +30,10 @@ export default function Canvas2D({
   onSelectRoom,
   validation,
   showEvacRoutes = true,
-  isSimulating = false
+  isSimulating = false,
+  onAddRoom,
+  onUndo,
+  habitatShape = 'cylinder'
 }) {
   const containerRef = useRef(null);
   const [zoom, setZoom] = useState(1);
@@ -41,7 +51,22 @@ export default function Canvas2D({
     });
   });
 
-  // Handle Drag / Resize Mouse Events
+  // Icon mapper helper
+  const getRoomIcon = (type) => {
+    switch (type) {
+      case 'SLEEPING': return <Moon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />;
+      case 'EXERCISE': return <Activity className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />;
+      case 'HYGIENE': return <Droplets className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />;
+      case 'GALLEY': return <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />;
+      case 'WORK': return <Briefcase className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />;
+      case 'MEDICAL': return <HeartPulse className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />;
+      case 'STORAGE': return <Boxes className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />;
+      case 'AIRLOCK': return <DoorOpen className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />;
+      default: return <Boxes className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />;
+    }
+  };
+
+  // Mouse Drag / Resize logic
   const handleMouseDown = (e, room, mode = 'move') => {
     e.stopPropagation();
     onSelectRoom(room.id);
@@ -66,16 +91,16 @@ export default function Canvas2D({
       const deltaY = Math.round((e.clientY - dragState.startY) / (GRID_SIZE * zoom));
 
       if (dragState.mode === 'move') {
-        const newX = Math.max(0, Math.min(CANVAS_COLS - 2, dragState.initialX + deltaX));
-        const newY = Math.max(0, Math.min(CANVAS_ROWS - 2, dragState.initialY + deltaY));
+        const newX = Math.max(1, Math.min(CANVAS_COLS - 4, dragState.initialX + deltaX));
+        const newY = Math.max(1, Math.min(CANVAS_ROWS - 3, dragState.initialY + deltaY));
 
         const updatedRooms = rooms.map(r => 
           r.id === dragState.roomId ? { ...r, x: newX, y: newY } : r
         );
         onUpdateLayout({ ...layout, rooms: updatedRooms });
       } else if (dragState.mode === 'resize') {
-        const newW = Math.max(2, Math.min(20, dragState.initialW + deltaX));
-        const newH = Math.max(2, Math.min(20, dragState.initialH + deltaY));
+        const newW = Math.max(2, Math.min(16, dragState.initialW + deltaX));
+        const newH = Math.max(2, Math.min(10, dragState.initialH + deltaY));
 
         const updatedRooms = rooms.map(r => 
           r.id === dragState.roomId ? { ...r, w: newW, h: newH } : r
@@ -111,8 +136,8 @@ export default function Canvas2D({
       ...room,
       id: `room-${Date.now()}`,
       name: `${room.name} (Copy)`,
-      x: Math.min(CANVAS_COLS - room.w, room.x + 2),
-      y: Math.min(CANVAS_ROWS - room.h, room.y + 2)
+      x: Math.min(CANVAS_COLS - room.w - 1, room.x + 2),
+      y: Math.min(CANVAS_ROWS - room.h - 1, room.y + 1)
     };
     onUpdateLayout({ ...layout, rooms: [...rooms, newRoom] });
     onSelectRoom(newRoom.id);
@@ -149,9 +174,9 @@ export default function Canvas2D({
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke="#10b981"
-              strokeWidth={isSelected ? '6' : '3'}
-              strokeOpacity={isSelected ? '0.35' : '0.18'}
+              stroke="#22c55e"
+              strokeWidth={isSelected ? '5' : '3'}
+              strokeOpacity={isSelected ? '0.4' : '0.2'}
               strokeLinecap="round"
             />
             <line
@@ -159,8 +184,8 @@ export default function Canvas2D({
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={isSelected ? '#10b981' : '#34d399'}
-              strokeWidth={isSelected ? '2.5' : '1.75'}
+              stroke={isSelected ? '#16a34a' : '#22c55e'}
+              strokeWidth={isSelected ? '2.5' : '2'}
               strokeLinecap="round"
               className="animate-evac-path"
             />
@@ -168,7 +193,7 @@ export default function Canvas2D({
               cx={(x1 + x2) / 2}
               cy={(y1 + y2) / 2}
               r={isSelected ? '3.5' : '2.5'}
-              fill="#10b981"
+              fill="#16a34a"
             />
           </g>
         );
@@ -182,148 +207,157 @@ export default function Canvas2D({
     );
   };
 
-  // Ruler tick arrays (every 5 meters)
-  const xTicks = Array.from({ length: Math.floor(CANVAS_COLS / 5) + 1 }, (_, i) => i * 5);
-  const yTicks = Array.from({ length: Math.floor(CANVAS_ROWS / 5) + 1 }, (_, i) => i * 5);
+  const paletteOrder = ['SLEEPING', 'EXERCISE', 'HYGIENE', 'GALLEY', 'WORK', 'MEDICAL', 'STORAGE'];
 
   return (
-    <div className="relative flex-1 bg-cad-viewport flex flex-col h-full overflow-hidden select-none transition-colors duration-200">
-      {/* Classy CAD Viewport Top Toolbar */}
-      <div className="h-10 border-b border-slate-200/90 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md px-4 flex items-center justify-between z-30">
-        <div className="flex items-center space-x-3 text-xs">
-          <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2 tracking-wide">
-            <Compass className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>DECK 01 — ARCHITECTURAL CANVAS</span>
+    <div className="bg-white dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded-2xl shadow-sm p-5 flex flex-col gap-4 select-none transition-colors duration-200">
+      {/* Card 02 Header: Number, Title, Instructions & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
+        <div className="flex items-center gap-2.5">
+          <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-mono font-bold flex items-center justify-center border border-slate-300 dark:border-slate-700">
+            02
           </span>
-          <span className="text-slate-300 dark:text-slate-700">|</span>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-            <Grid3X3 className="w-3 h-3 text-slate-400" />
-            SNAP: 1.0m
-          </span>
-          <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
-            {rooms.length} Modules
-          </span>
-          <span className="text-slate-300 dark:text-slate-700">|</span>
-          <span className="text-[11px] text-slate-700 dark:text-slate-300 font-mono font-semibold">
-            {validation?.totalArea || 0} m²
-          </span>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              Zone layout
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Select a zone, then drag or resize on the habitat hull grid to reposition it.
+            </p>
+          </div>
         </div>
 
-        {/* Zoom & View Controls */}
-        <div className="flex items-center space-x-2">
-          <div className="bg-slate-100 dark:bg-slate-800/90 rounded-lg p-0.5 flex items-center space-x-0.5 border border-slate-200 dark:border-slate-700/80 shadow-sm">
+        {/* Ruler scale & Undo / Zoom */}
+        <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-slate-500 dark:text-slate-400 font-mono">
+          <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-space-850 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+            <span className="tracking-tighter">|--|</span> 1 grid = 1.0 m
+          </span>
+          {onUndo && (
             <button
-              onClick={() => setZoom(z => Math.max(0.6, +(z - 0.1).toFixed(1)))}
-              className="p-1 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md transition"
+              onClick={onUndo}
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-300 transition"
+              title="Undo last change"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <div className="flex items-center space-x-1 pl-1">
+            <button
+              onClick={() => setZoom(z => Math.max(0.7, +(z - 0.1).toFixed(1)))}
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono font-medium text-slate-700 dark:text-slate-200 px-2 min-w-[44px] text-center">
+            <span className="text-[10px] min-w-[34px] text-center font-bold">
               {Math.round(zoom * 100)}%
             </span>
             <button
-              onClick={() => setZoom(z => Math.min(1.6, +(z + 0.1).toFixed(1)))}
-              className="p-1 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md transition"
+              onClick={() => setZoom(z => Math.min(1.4, +(z + 0.1).toFixed(1)))}
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
-            <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700 mx-0.5" />
             <button
               onClick={() => setZoom(1)}
-              className="p-1 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md transition"
-              title="Reset Zoom (100%)"
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
+              title="Reset Zoom"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Interactive Blueprint Sheet Container */}
+      {/* Quick Zone Palette Chips (Matching reference image) */}
+      <div className="flex flex-wrap items-center gap-2 pb-1 overflow-x-auto">
+        {paletteOrder.map(key => {
+          const type = ROOM_TYPES[key];
+          return (
+            <button
+              key={type.id}
+              onClick={() => onAddRoom(type, type.id === 'SLEEPING' || type.id === 'WORK' ? 8 : 6, 4)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition shadow-sm hover:scale-[1.02] active:scale-[0.98] ${type.chipBg}`}
+            >
+              {getRoomIcon(type.id)}
+              <span>{type.name}</span>
+              <Plus className="w-3 h-3 opacity-60 ml-0.5" />
+            </button>
+          );
+        })}
+        {/* Additional corridor & airlock chips */}
+        <button
+          onClick={() => onAddRoom(ROOM_TYPES.AIRLOCK, 3, 4)}
+          className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition shadow-sm ${ROOM_TYPES.AIRLOCK.chipBg}`}
+        >
+          <DoorOpen className="w-3.5 h-3.5 text-purple-600" />
+          <span>Airlock</span>
+          <Plus className="w-3 h-3 opacity-60" />
+        </button>
+      </div>
+
+      {/* The Habitat Hull Viewport Surface */}
       <div 
         ref={containerRef}
         onClick={() => onSelectRoom(null)}
-        className="flex-1 overflow-auto relative p-8 cursor-crosshair"
+        className="w-full overflow-x-auto overflow-y-hidden py-4 flex items-center justify-center bg-slate-50/70 dark:bg-space-950/70 rounded-2xl border border-slate-200/80 dark:border-space-800/80 cursor-crosshair"
       >
-        {/* Scaled Wrapper with Architectural Rulers */}
         <div
           style={{
             transform: `scale(${zoom})`,
-            transformOrigin: '0 0',
-            width: `${CANVAS_COLS * GRID_SIZE + 36}px`,
-            height: `${CANVAS_ROWS * GRID_SIZE + 36}px`,
+            transformOrigin: 'center center',
+            width: `${CANVAS_COLS * GRID_SIZE + 60}px`,
+            height: `${CANVAS_ROWS * GRID_SIZE + 40}px`,
           }}
-          className="relative"
+          className="relative flex items-center justify-center my-2"
         >
-          {/* Top Horizontal Meter Ruler */}
-          <div
-            style={{ left: '28px', width: `${CANVAS_COLS * GRID_SIZE}px` }}
-            className="absolute top-0 h-6 flex items-end pointer-events-none"
-          >
-            {xTicks.map(m => (
-              <div
-                key={`xr-${m}`}
-                style={{ left: `${m * GRID_SIZE}px` }}
-                className="absolute bottom-0 flex flex-col items-start"
-              >
-                <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 -translate-x-1/2 mb-0.5">
-                  {m}m
-                </span>
-                <div className="w-px h-1.5 bg-slate-300 dark:bg-slate-700" />
-              </div>
-            ))}
-          </div>
-
-          {/* Left Vertical Meter Ruler */}
-          <div
-            style={{ top: '28px', height: `${CANVAS_ROWS * GRID_SIZE}px` }}
-            className="absolute left-0 w-6 flex flex-col items-end pointer-events-none"
-          >
-            {yTicks.map(m => (
-              <div
-                key={`yr-${m}`}
-                style={{ top: `${m * GRID_SIZE}px` }}
-                className="absolute right-0 flex items-center"
-              >
-                <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 -translate-y-1/2 mr-1">
-                  {m}m
-                </span>
-                <div className="h-px w-1.5 bg-slate-300 dark:bg-slate-700" />
-              </div>
-            ))}
-          </div>
-
-          {/* Blueprint Sheet Surface */}
+          {/* Habitat Hull Capsule Shape (As shown in reference image) */}
           <div
             style={{
-              left: '28px',
-              top: '28px',
               width: `${CANVAS_COLS * GRID_SIZE}px`,
               height: `${CANVAS_ROWS * GRID_SIZE}px`,
             }}
-            className="absolute rounded-xl border border-slate-300/90 dark:border-slate-700/70 shadow-[0_12px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.65)] bg-white/85 dark:bg-[#080d1a]/90 bg-grid-pattern bg-grid-major overflow-hidden"
+            className={`relative border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 shadow-md ${
+              habitatShape === 'cylinder'
+                ? 'rounded-[44px]'
+                : habitatShape === 'ring'
+                ? 'rounded-[60px]'
+                : 'rounded-2xl'
+            }`}
           >
-            {/* Corner CAD Registration Marks */}
-            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-slate-400/50 dark:border-cyan-500/30 pointer-events-none" />
-            <div className="absolute top-2 right-2 w-3 h-3 border-t border-r border-slate-400/50 dark:border-cyan-500/30 pointer-events-none" />
-            <div className="absolute bottom-2 left-2 w-3 h-3 border-b border-l border-slate-400/50 dark:border-cyan-500/30 pointer-events-none" />
+            {/* Outer Pressure Hull Ring Effect */}
+            <div
+              className={`absolute inset-[-6px] border border-slate-200 dark:border-slate-800 pointer-events-none ${
+                habitatShape === 'cylinder'
+                  ? 'rounded-[50px]'
+                  : habitatShape === 'ring'
+                  ? 'rounded-[66px]'
+                  : 'rounded-2xl'
+              }`}
+            />
 
-            {/* Architectural Title Block (Bottom Right of Sheet) */}
-            <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80 backdrop-blur-sm pointer-events-none flex items-center gap-3 text-[9px] font-mono text-slate-500 dark:text-slate-400 z-10">
-              <span className="font-bold text-slate-700 dark:text-slate-300">TECHSTARS • SW-4</span>
-              <span>|</span>
-              <span>HABITAT DECK PLAN</span>
-              <span>|</span>
-              <span>NASA-STD-3001</span>
+            {/* Left Port Docking Collar Tab */}
+            <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 h-20 rounded-l-xl bg-slate-100 dark:bg-slate-800 border-2 border-r-0 border-slate-300 dark:border-slate-700 flex items-center justify-center shadow-sm pointer-events-none">
+              <span className="text-[9px] font-mono font-bold tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-rl] rotate-180">
+                PORT
+              </span>
             </div>
+
+            {/* Right Starboard Docking Collar Tab */}
+            <div className="absolute -right-5 top-1/2 -translate-y-1/2 w-5 h-20 rounded-r-xl bg-slate-100 dark:bg-slate-800 border-2 border-l-0 border-slate-300 dark:border-slate-700 flex items-center justify-center shadow-sm pointer-events-none">
+              <span className="text-[9px] font-mono font-bold tracking-widest text-slate-400 dark:text-slate-500 [writing-mode:vertical-rl]">
+                STBD
+              </span>
+            </div>
+
+            {/* Interior Clean Blueprint Grid */}
+            <div className="absolute inset-0 bg-grid-pattern opacity-70 pointer-events-none rounded-[inherit]" />
 
             {/* Evacuation SVG Overlay Lines */}
             {renderEvacuationRoutes()}
 
-            {/* Render Architectural Room Modules */}
+            {/* Render Habitat Zone Cards */}
             {rooms.map(room => {
               const rDef = ROOM_TYPES[room.type] || ROOM_TYPES.STORAGE;
               const isSelected = selectedRoomId === room.id;
@@ -348,51 +382,32 @@ export default function Canvas2D({
                     width: `${room.w * GRID_SIZE}px`,
                     height: `${room.h * GRID_SIZE}px`,
                     zIndex: isSelected ? 25 : 10,
-                    borderLeftColor: rDef.color,
                   }}
-                  className={`absolute rounded-md border transition-shadow cursor-grab active:cursor-grabbing select-none group flex flex-col justify-between p-2
-                    bg-white/95 dark:bg-slate-900/90 backdrop-blur-md
-                    border-l-[4px]
-                    ${rDef.isPassage ? 'bg-corridor-hatch border-dashed border-slate-400 dark:border-slate-600' : 'border-slate-300/90 dark:border-slate-700/80'}
+                  className={`absolute rounded-xl border-l-[5px] transition-all cursor-grab active:cursor-grabbing select-none group flex flex-col justify-between p-2.5 shadow-sm
+                    ${rDef.lightBg} ${rDef.darkBg}
                     ${isSelected
-                      ? 'ring-2 ring-cyan-500 dark:ring-cyan-400 border-cyan-500/60 shadow-[0_10px_30px_rgba(6,182,212,0.22)]'
-                      : 'shadow-sm hover:shadow-md dark:hover:border-slate-500/80'}
-                    ${hasCritical && !isSelected ? 'ring-1 ring-red-500/80 shadow-[0_0_16px_rgba(239,68,68,0.18)]' : ''}
+                      ? 'ring-2 ring-blue-500 shadow-md scale-[1.01]'
+                      : 'hover:shadow-md hover:brightness-[0.98]'}
+                    ${hasCritical && !isSelected ? 'ring-2 ring-rose-500/80 animate-pulse' : ''}
                   `}
                 >
-                  {/* Subtle Top Tinted Wash */}
-                  <div
-                    className="absolute inset-0 rounded-md pointer-events-none opacity-[0.06] dark:opacity-[0.11]"
-                    style={{ backgroundColor: rDef.color }}
-                  />
-
-                  {/* CAD Selection Corner Anchors */}
-                  {isSelected && (
-                    <>
-                      <span className="absolute -top-1 -left-1 w-2 h-2 bg-white border border-cyan-500 rounded-[1px] pointer-events-none" />
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-white border border-cyan-500 rounded-[1px] pointer-events-none" />
-                      <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-white border border-cyan-500 rounded-[1px] pointer-events-none" />
-                    </>
-                  )}
-
-                  {/* Header bar: Type dot, Name & Status Pill */}
-                  <div className="relative flex items-start justify-between gap-1 overflow-hidden pointer-events-none">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className="w-2 h-2 rounded-full flex-shrink-0 ring-2 ring-white/50 dark:ring-slate-900/50"
-                        style={{ backgroundColor: rDef.color }}
-                      />
-                      <span className="font-semibold text-[11px] leading-tight truncate text-slate-900 dark:text-slate-100">
+                  {/* Card Header: Icon & Name */}
+                  <div className="flex items-start justify-between gap-1 pointer-events-none">
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="p-1 rounded-md bg-white/70 dark:bg-black/30 shadow-2xs">
+                        {getRoomIcon(room.type)}
+                      </div>
+                      <span className="font-bold text-xs leading-none">
                         {room.name}
                       </span>
                     </div>
 
                     {/* Warning Indicator Badge */}
                     {hasWarning && (
-                      <div
-                        className={`flex-shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold flex items-center gap-0.5 shadow-sm
-                          ${hasCritical ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-950'}
-                        `}
+                      <div 
+                        className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold flex items-center gap-0.5 shadow-xs ${
+                          hasCritical ? 'bg-rose-500 text-white' : 'bg-amber-400 text-slate-900'
+                        }`}
                         title={roomIssues.map(i => i.title).join('\n')}
                       >
                         <AlertTriangle className="w-2.5 h-2.5" />
@@ -400,76 +415,52 @@ export default function Canvas2D({
                       </div>
                     )}
 
-                    {/* Airlock Exit Beacon */}
                     {rDef.isExit && (
-                      <div className="flex-shrink-0 bg-pink-600/90 text-white px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold flex items-center gap-0.5 shadow-sm">
-                        <DoorOpen className="w-2.5 h-2.5" />
-                        <span>EXIT</span>
-                      </div>
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-purple-600 text-white shadow-xs">
+                        EXIT
+                      </span>
                     )}
                   </div>
 
-                  {/* Center Content: Clean CAD Dimension Callout */}
-                  <div className="relative my-auto pointer-events-none text-center">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/70">
-                      <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100">
-                        {room.w}×{room.h}m
-                      </span>
-                      <span className="text-slate-300 dark:text-slate-600">•</span>
-                      <span className="font-mono text-[10px] font-medium text-slate-600 dark:text-slate-300">
-                        {area} m²
-                      </span>
-                    </div>
-
-                    {isTrapped && (
-                      <div className="mt-1 flex justify-center">
-                        <span className="inline-flex items-center gap-1 bg-red-600 text-white px-1.5 py-0.5 rounded text-[9px] font-mono font-bold shadow-sm">
-                          <AlertTriangle className="w-2.5 h-2.5" />
-                          NO EXIT
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Footer: Category & Quick Actions */}
-                  <div className="relative flex items-center justify-between text-[10px] pt-1 border-t border-slate-200/70 dark:border-slate-800 pointer-events-auto">
-                    <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
-                      {rDef.category}
+                  {/* Card Center/Bottom: Area Metric */}
+                  <div className="pointer-events-none">
+                    <span className="text-[11px] font-mono opacity-80 font-medium">
+                      {area.toFixed(1)} m²
                     </span>
-
-                    {isSelected && (
-                      <div className="flex items-center gap-0.5">
-                        <button
-                          onClick={(e) => handleDuplicateRoom(room, e)}
-                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-300 transition"
-                          title="Duplicate Module"
-                        >
-                          <Copy className="w-2.5 h-2.5" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteRoom(room.id, e)}
-                          className="p-1 hover:bg-red-500/15 text-red-600 dark:text-red-400 rounded transition"
-                          title="Delete Module"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                        </button>
+                    {isTrapped && (
+                      <div className="text-[9px] font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                        NO ROUTE
                       </div>
                     )}
                   </div>
 
-                  {/* Interactive Resize Handle (bottom-right) */}
+                  {/* Quick duplicate / delete on hover or select */}
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 pointer-events-auto bg-white/90 dark:bg-black/80 rounded-lg p-0.5 shadow-sm border border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={(e) => handleDuplicateRoom(room, e)}
+                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-300 transition"
+                        title="Duplicate"
+                      >
+                        <Copy className="w-2.5 h-2.5" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteRoom(room.id, e)}
+                        className="p-1 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded text-rose-600 dark:text-rose-400 transition"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Resize Handle (bottom-right corner) */}
                   <div
                     onMouseDown={(e) => handleMouseDown(e, room, 'resize')}
-                    className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 cursor-se-resize flex items-center justify-center transition ${
-                      isSelected
-                        ? 'bg-cyan-500 border border-white rounded-[2px] shadow'
-                        : 'text-slate-400 dark:text-slate-500 hover:text-cyan-500'
-                    }`}
-                    title="Drag to resize dimensions"
+                    className="absolute bottom-1 right-1 w-3 h-3 cursor-se-resize flex items-center justify-center opacity-40 group-hover:opacity-100 text-current transition"
+                    title="Drag to resize"
                   >
-                    {!isSelected && (
-                      <div className="w-1.5 h-1.5 border-r-[1.5px] border-b-[1.5px] border-current mr-1 mb-1" />
-                    )}
+                    <div className="w-1.5 h-1.5 border-r-2 border-b-2 border-current" />
                   </div>
                 </div>
               );
@@ -478,27 +469,25 @@ export default function Canvas2D({
         </div>
       </div>
 
-      {/* Minimal Architectural Legend Footer */}
-      <div className="border-t border-slate-200/90 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md px-4 py-1.5 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-400 z-30">
-        <div className="flex items-center gap-3 overflow-x-auto">
-          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wider">ZONES:</span>
-          {Object.values(ROOM_TYPES).slice(0, 8).map(t => (
-            <div key={t.id} className="flex items-center gap-1.5 whitespace-nowrap">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }}></span>
-              <span className="text-[11px] text-slate-700 dark:text-slate-300">{t.name.split(' ')[0]}</span>
-            </div>
-          ))}
+      {/* Legend Footer (Matching reference image) */}
+      <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-space-800">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span className="text-[11px]">Clear egress route</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span className="text-[11px]">Noise buffer recommended</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span className="text-[11px]">Rule penalty active</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] font-mono">
-          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-            <span className="w-3 h-0.5 bg-emerald-500 inline-block border-b border-dashed"></span>
-            <span>BFS Egress</span>
-          </div>
-          <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-            <AlertTriangle className="w-3 h-3" />
-            <span>Violation</span>
-          </div>
+        <div className="text-[11px] font-mono text-slate-400">
+          Double-click or drag corner to resize
         </div>
       </div>
     </div>

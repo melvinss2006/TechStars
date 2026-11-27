@@ -5,20 +5,20 @@ import { MISSION_PROFILES } from './constants/habitatRules';
 import { validateLayout } from './services/validationEngine';
 import { findBestOptimization } from './services/optimizer';
 
-import Navbar from './components/Navbar';
-import RoomPalette from './components/RoomPalette';
+import LeftRail from './components/LeftRail';
+import TopHeader from './components/TopHeader';
+import MissionParameters from './components/MissionParameters';
 import Canvas2D from './components/Canvas2D';
-import ScoreCard from './components/ScoreCard';
-import IssuesList from './components/IssuesList';
+import RightSidebar from './components/RightSidebar';
 import RoomInspector from './components/RoomInspector';
 import CompareModal from './components/CompareModal';
 import OptimizerModal from './components/OptimizerModal';
 import AIExplanationModal from './components/AIExplanationModal';
 
 export default function App() {
-  // Theme state ('dark' | 'light')
+  // Theme state ('light' as default to match reference, with seamless 'dark' toggle)
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('habitat-theme') || 'dark';
+    return localStorage.getItem('habitat-theme') || 'light';
   });
 
   useEffect(() => {
@@ -31,27 +31,19 @@ export default function App() {
     localStorage.setItem('habitat-theme', theme);
   }, [theme]);
 
-  // Panel minimize states
-  const [isPaletteMinimized, setIsPaletteMinimized] = useState(false);
-  const [isIssuesMinimized, setIsIssuesMinimized] = useState(false);
-  const [isScoreMinimized, setIsScoreMinimized] = useState(false);
+  // Active rail tab
+  const [activeTab, setActiveTab] = useState('grid');
 
-  const isCanvasFocused = isPaletteMinimized && isIssuesMinimized && isScoreMinimized;
-
-  const handleToggleFocusCanvas = () => {
-    const next = !isCanvasFocused;
-    setIsPaletteMinimized(next);
-    setIsIssuesMinimized(next);
-    setIsScoreMinimized(next);
-  };
-
-  // Initialize with the flawed layout preset to clearly showcase problem & solution
+  // Layout & Mission State
+  // Initialized with the reference optimal layout matching the uploaded screenshot!
   const [currentLayout, setCurrentLayout] = useState(PRESET_LAYOUTS[0]);
+  const [history, setHistory] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [crewSize, setCrewSize] = useState(4);
+  const [durationDays, setDurationDays] = useState(180);
+  const [habitatShape, setHabitatShape] = useState('cylinder');
   const [missionProfileId, setMissionProfileId] = useState('lunar_surface');
   const [showEvacRoutes, setShowEvacRoutes] = useState(true);
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // Modals state
   const [isCompareOpen, setIsCompareOpen] = useState(false);
@@ -62,15 +54,15 @@ export default function App() {
   const [savedVersions, setSavedVersions] = useState([
     {
       id: 'snapshot-preset-1',
-      name: 'Baseline Flawed Layout',
-      description: 'Initial manual proposal with acoustic and egress flaws',
+      name: 'Mission Ready Habitat',
+      description: 'Balanced, compliant layout matching reference architecture',
       timestamp: new Date().toLocaleTimeString(),
       layout: PRESET_LAYOUTS[0]
     },
     {
       id: 'snapshot-preset-2',
-      name: 'NASA Compliant Revision',
-      description: 'Optimized revision with acoustic buffer and direct exit',
+      name: 'Flawed Architecture Demo',
+      description: 'Initial proposal with acoustic and egress flaws',
       timestamp: new Date().toLocaleTimeString(),
       layout: PRESET_LAYOUTS[1]
     }
@@ -94,16 +86,34 @@ export default function App() {
     return currentLayout.rooms?.find(r => r.id === selectedRoomId) || null;
   }, [currentLayout.rooms, selectedRoomId]);
 
-  // Handlers
+  // Handlers with Undo support
+  const pushHistory = (layout) => {
+    setHistory(prev => [JSON.parse(JSON.stringify(layout)), ...prev.slice(0, 9)]);
+  };
+
+  const handleUpdateLayout = (newLayout) => {
+    pushHistory(currentLayout);
+    setCurrentLayout(newLayout);
+  };
+
+  const handleUndo = () => {
+    if (history.length > 0) {
+      const prev = history[0];
+      setHistory(h => h.slice(1));
+      setCurrentLayout(prev);
+    }
+  };
+
   const handleAddRoom = (typeDef, w, h) => {
+    pushHistory(currentLayout);
     const newRoom = {
       id: `room-${Date.now()}`,
       type: typeDef.id,
       name: typeDef.name,
       x: 3 + ((currentLayout.rooms.length * 2) % 18),
-      y: 3 + ((currentLayout.rooms.length * 2) % 12),
-      w: w || 4,
-      h: h || 3
+      y: 2 + ((currentLayout.rooms.length * 2) % 6),
+      w: w || 6,
+      h: h || 4
     };
 
     setCurrentLayout(prev => ({
@@ -114,6 +124,7 @@ export default function App() {
   };
 
   const handleUpdateRoom = (updatedRoom) => {
+    pushHistory(currentLayout);
     setCurrentLayout(prev => ({
       ...prev,
       rooms: prev.rooms.map(r => r.id === updatedRoom.id ? updatedRoom : r)
@@ -121,6 +132,7 @@ export default function App() {
   };
 
   const handleDeleteRoom = (roomId) => {
+    pushHistory(currentLayout);
     setCurrentLayout(prev => ({
       ...prev,
       rooms: prev.rooms.filter(r => r.id !== roomId)
@@ -129,12 +141,13 @@ export default function App() {
   };
 
   const handleDuplicateRoom = (room) => {
+    pushHistory(currentLayout);
     const duplicated = {
       ...room,
       id: `room-${Date.now()}`,
       name: `${room.name} (Copy)`,
-      x: room.x + 2,
-      y: room.y + 2
+      x: Math.min(26, room.x + 2),
+      y: Math.min(10, room.y + 1)
     };
     setCurrentLayout(prev => ({
       ...prev,
@@ -144,9 +157,12 @@ export default function App() {
   };
 
   const handleLoadPreset = (preset) => {
+    pushHistory(currentLayout);
     setCurrentLayout(preset);
     setSelectedRoomId(null);
     if (preset.crewSize) setCrewSize(preset.crewSize);
+    if (preset.durationDays) setDurationDays(preset.durationDays);
+    if (preset.habitatShape) setHabitatShape(preset.habitatShape);
     if (preset.missionProfile) setMissionProfileId(preset.missionProfile);
   };
 
@@ -161,17 +177,18 @@ export default function App() {
     setSavedVersions(prev => [newSnapshot, ...prev]);
 
     confetti({
-      particleCount: 40,
-      spread: 60,
-      origin: { y: 0.2 }
+      particleCount: 50,
+      spread: 70,
+      origin: { y: 0.15 }
     });
   };
 
   const handleApplySwap = (newLayout) => {
+    pushHistory(currentLayout);
     setCurrentLayout(newLayout);
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 90,
+      spread: 80,
       origin: { y: 0.6 }
     });
   };
@@ -180,7 +197,7 @@ export default function App() {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(currentLayout, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `${currentLayout.id || 'habitat-layout'}-export.json`);
+    downloadAnchor.setAttribute('download', `${currentLayout.id || 'habitat-planner'}-export.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -188,6 +205,7 @@ export default function App() {
 
   const handleImportJSON = (importedLayout) => {
     if (importedLayout && Array.isArray(importedLayout.rooms)) {
+      pushHistory(currentLayout);
       setCurrentLayout(importedLayout);
       if (importedLayout.crewSize) setCrewSize(importedLayout.crewSize);
       if (importedLayout.missionProfile) setMissionProfileId(importedLayout.missionProfile);
@@ -197,99 +215,85 @@ export default function App() {
     }
   };
 
-  const handleResetLayout = () => {
-    if (window.confirm('Clear all modules and reset canvas?')) {
-      setCurrentLayout({
-        id: `custom-${Date.now()}`,
-        name: 'Empty Custom Habitat',
-        tagline: 'Fresh canvas',
-        missionProfile: missionProfileId,
-        crewSize,
-        rooms: []
-      });
-      setSelectedRoomId(null);
-    }
-  };
-
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 dark:bg-space-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
-      {/* Top Navbar */}
-      <Navbar
-        missionProfileId={missionProfileId}
-        onChangeMissionProfile={setMissionProfileId}
-        crewSize={crewSize}
-        onChangeCrewSize={setCrewSize}
-        onLoadPreset={handleLoadPreset}
-        showEvacRoutes={showEvacRoutes}
-        onToggleEvacRoutes={() => setShowEvacRoutes(v => !v)}
-        onSaveSnapshot={handleSaveSnapshot}
-        savedVersionsCount={savedVersions.length}
-        onOpenCompare={() => setIsCompareOpen(true)}
-        onExportJSON={handleExportJSON}
-        onImportJSON={handleImportJSON}
-        onResetLayout={handleResetLayout}
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] dark:bg-space-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
+      {/* 1. Left Slim Dark Navigation Rail */}
+      <LeftRail
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
         theme={theme}
         onToggleTheme={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}
-        isCanvasFocused={isCanvasFocused}
-        onToggleFocusCanvas={handleToggleFocusCanvas}
       />
 
-      {/* Score Telemetry HUD (Minimizable) */}
-      <ScoreCard
-        validation={validation}
-        onRunSimulation={() => setIsSimulating(v => !v)}
-        isSimulating={isSimulating}
-        onOpenOptimizer={() => setIsOptimizerOpen(true)}
-        onOpenReport={() => setIsReportOpen(true)}
-        bestSwap={bestSwap}
-        isMinimized={isScoreMinimized}
-        onToggleMinimize={() => setIsScoreMinimized(v => !v)}
-      />
-
-      {/* Main Workspace Body */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Left: Module Palette (Minimizable) */}
-        <RoomPalette
-          onAddRoom={handleAddRoom}
-          crewSize={crewSize}
-          isMinimized={isPaletteMinimized}
-          onToggleMinimize={() => setIsPaletteMinimized(v => !v)}
+      {/* 2. Main Right Column */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Top Header */}
+        <TopHeader
+          onLoadPreset={handleLoadPreset}
+          onSaveSnapshot={handleSaveSnapshot}
+          onOpenCompare={() => setIsCompareOpen(true)}
+          onExportJSON={handleExportJSON}
+          onImportJSON={handleImportJSON}
+          savedVersionsCount={savedVersions.length}
         />
 
-        {/* Center: 2D Interactive Canvas */}
-        <Canvas2D
-          layout={currentLayout}
-          onUpdateLayout={setCurrentLayout}
-          selectedRoomId={selectedRoomId}
-          onSelectRoom={setSelectedRoomId}
-          validation={validation}
-          showEvacRoutes={showEvacRoutes}
-          isSimulating={isSimulating}
-        />
+        {/* Scrollable Main Content: Mission parameters + Zone layout + Right Sidebar */}
+        <main className="flex-1 overflow-y-auto p-5 sm:p-6">
+          <div className="max-w-[1560px] mx-auto flex flex-col lg:flex-row gap-5 items-start">
+            {/* Left & Center Column: Card 01 (Parameters) + Card 02 (Zone Layout Canvas) */}
+            <div className="flex-1 flex flex-col gap-5 w-full">
+              {/* Card 01: Mission parameters */}
+              <MissionParameters
+                crewSize={crewSize}
+                onChangeCrewSize={setCrewSize}
+                durationDays={durationDays}
+                onChangeDuration={setDurationDays}
+                habitatShape={habitatShape}
+                onChangeHabitatShape={setHabitatShape}
+                totalArea={validation?.totalArea || 104}
+                recommendedArea={activeMission.recommendedTotalArea}
+              />
 
-        {/* Right: Rules Validation & Penalties (Minimizable) */}
-        <IssuesList
-          issues={validation.issues}
-          selectedRoomId={selectedRoomId}
-          onSelectRoom={setSelectedRoomId}
-          isMinimized={isIssuesMinimized}
-          onToggleMinimize={() => setIsIssuesMinimized(v => !v)}
-        />
+              {/* Card 02: Zone layout (The Canvas) */}
+              <Canvas2D
+                layout={currentLayout}
+                onUpdateLayout={handleUpdateLayout}
+                selectedRoomId={selectedRoomId}
+                onSelectRoom={setSelectedRoomId}
+                validation={validation}
+                showEvacRoutes={showEvacRoutes}
+                onAddRoom={handleAddRoom}
+                onUndo={history.length > 0 ? handleUndo : null}
+                habitatShape={habitatShape}
+              />
+            </div>
 
-        {/* Floating Room Inspector Drawer when room is clicked */}
-        {selectedRoom && (
-          <RoomInspector
-            room={selectedRoom}
-            onClose={() => setSelectedRoomId(null)}
-            onUpdateRoom={handleUpdateRoom}
-            onDeleteRoom={handleDeleteRoom}
-            onDuplicateRoom={handleDuplicateRoom}
-            validation={validation}
-            crewSize={crewSize}
-            isPaletteMinimized={isPaletteMinimized}
-          />
-        )}
+            {/* Right Column: Card 03 (Layout Score) + Automatic checks + Top improvement */}
+            <RightSidebar
+              validation={validation}
+              crewSize={crewSize}
+              bestSwap={bestSwap}
+              onApplySwap={handleApplySwap}
+              onSelectRoom={setSelectedRoomId}
+              selectedRoomId={selectedRoomId}
+            />
+          </div>
+        </main>
       </div>
+
+      {/* Floating Module Inspector when a room is clicked */}
+      {selectedRoom && (
+        <RoomInspector
+          room={selectedRoom}
+          onClose={() => setSelectedRoomId(null)}
+          onUpdateRoom={handleUpdateRoom}
+          onDeleteRoom={handleDeleteRoom}
+          onDuplicateRoom={handleDuplicateRoom}
+          validation={validation}
+          crewSize={crewSize}
+          isPaletteMinimized={true}
+        />
+      )}
 
       {/* Modals */}
       <CompareModal
@@ -298,6 +302,7 @@ export default function App() {
         currentLayout={currentLayout}
         savedVersions={savedVersions}
         onLoadVersion={(layout) => {
+          pushHistory(currentLayout);
           setCurrentLayout(layout);
           setSelectedRoomId(null);
         }}
